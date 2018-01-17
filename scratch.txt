@@ -1,0 +1,4 @@
+datum add coffee 1
+datum view coffee
+datum coffee
+datum rm coffee
