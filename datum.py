@@ -1,2 +1,6 @@
+import click
+
+@click.command()
 def cli():
-    print('cli!')
+    '''this program kills fascists'''
+    click.echo('yey!')
