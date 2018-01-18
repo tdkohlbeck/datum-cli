@@ -1,4 +1,21 @@
 import click
+import pymysql.cursors
+import datetime
+
+connection = pymysql.connect(
+    host='localhost',
+    user='root',
+    db='datum',
+    cursorclass=pymysql.cursors.DictCursor
+)
+
+try:
+    with connection.cursor() as cursor:
+        sql = 'insert into datums (time) values (%s)'
+        cursor.execute(sql, '2018-01-18 11:11:44')
+    connection.commit()
+finally:
+    connection.close()
 
 @click.group()
 def main():
@@ -11,9 +28,10 @@ def test(command):
     click.echo(command)
 
 @main.command()
-def add():
+@click.argument('datum', nargs=-1)
+def add(datum):
     '''Add a new datum'''
-    pass
+    click.echo(datum)
 
 @main.command()
 def ls():

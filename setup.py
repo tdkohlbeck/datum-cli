@@ -17,6 +17,7 @@ setup(
     py_modules=['datum'],
     install_requires=[
         'Click',
+        'pymysql',
     ],
     entry_points='''
         [console_scripts]

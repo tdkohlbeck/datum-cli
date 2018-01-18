@@ -2,3 +2,9 @@ datum add coffee 1
 datum view coffee
 datum coffee
 datum rm coffee
+
+add tag to db table steps:
+- log the datetime
+- check if tag column/field exists
+- if exists, add row under that field
+- if not, then add the field, then the row
