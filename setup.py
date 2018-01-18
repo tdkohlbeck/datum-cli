@@ -12,14 +12,21 @@ with open('LICENSE') as f:
     license = f.read()
 
 setup(
-    name='sample',
-    version='0.1.0',
-    description='Sample package for Python-Guide.org',
+    name='datum',
+    version='1.0.0',
+    py_modules=['datum'],
+    install_requires=[
+        'Click',
+    ],
+    entry_points='''
+        [console_scripts]
+        datum=datum:cli
+    ''',
+    description='Personal data management platform',
     long_description=readme,
-    author='Kenneth Reitz',
-    author_email='me@kennethreitz.com',
-    url='https://github.com/kennethreitz/samplemod',
+    author='Travis Kohlbeck',
+    author_email='me@travisk.com',
+    url='https://github.com/tdkohlbeck/datum-cli',
     license=license,
     packages=find_packages(exclude=('tests', 'docs'))
 )
-
