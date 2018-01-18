@@ -20,7 +20,7 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        datum=datum:cli
+        datum=datum:main
     ''',
     description='Personal data management platform',
     long_description=readme,
