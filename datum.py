@@ -3,13 +3,24 @@ import pymysql.cursors
 from datetime import datetime
 from pprint import pprint
 
-connection = pymysql.connect(
-    host='localhost',
-    user='root',
-    db='datum',
-    charset='utf8mb4',
-    cursorclass=pymysql.cursors.DictCursor
-)
+datums_db = {
+    'host': 'localhost',
+    'user': 'root',
+    'db': 'datum',
+    'charset': 'utf8mb4',
+    'cursorclass': pymysql.cursors.DictCursor
+}
+
+def db(sql):
+    connection = pymysql.connect(**datums_db)
+    try:
+        with connection.cursor() as cursor:
+            affected_row_count = cursor.execute(sql)
+        connection.commit()
+        all_rows = cursor.fetchall()
+    finally:
+        connection.close()
+    return (affected_row_count, all_rows)
 
 @click.group()
 def main():
@@ -23,31 +34,21 @@ def add(datum):
     if len(datum) % 2:
         click.echo('each tag requires a value!')
         return
-    # TODO parse datum tuple
 
-    try:
-        with connection.cursor() as c:
-            # check if column exists, create if not
-            sql = 'show columns from datums like %s'
-            if not c.execute(sql, datum[0]):
-                sql = 'alter table datums add ' + datum[0] + ' varchar(32)'
-                c.execute(sql)
-            sql = 'insert into datums (' + datum[0] + ', time) values (%s, %s)'
-            c.execute(sql, (datum[1], datetime.now()))
-        connection.commit()
-    finally:
-        connection.close()
+    tag, value = datum
+    sql = 'show columns from datums like \'{}\''.format(tag)
+    column_exists, those_columns = db(sql)
+    if not column_exists:
+        print('new tag! adding db column...')
+        db('alter table datums add {} varchar(32)'.format(tag))
+    sql = 'insert into datums ({}, time) values (\'{}\', \'{}\')'
+    db( sql.format(tag, value, datetime.now()) )
 
 @main.command()
 def ls():
     '''List all datums'''
-    try:
-        with connection.cursor() as c:
-            sql = 'select * from datums'
-            c.execute(sql)
-            click.echo(pprint(c.fetchall()))
-    finally:
-        connection.close()
+    datum_list = db('select * from datums')
+    click.echo(pprint(datum_list))
 
 
 @main.command()
