@@ -62,6 +62,9 @@ def edit():
     pass
 
 @main.command()
-def rm():
+@click.argument('datum_ids', nargs=-1)
+def rm(datum_ids):
     '''Remove an existing datum'''
-    pass
+    for datum_id in datum_ids:
+        db('delete from datums where id={}'.format(datum_id))
+        click.echo('deleted datum ' + str(datum_id))
