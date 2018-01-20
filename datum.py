@@ -30,14 +30,13 @@ def main():
 @click.argument('datum', nargs=-1)
 def add(datum):
     '''Add a new datum'''
+
+    # TODO allow for runtime tag entry
     if not datum:
         click.echo('TODO: allow runtime tag entry')
         return
-    # make sure each tag has a value
-    '''if len(datum) % 2:
-        click.echo('each tag requires a value!')
-        return'''
 
+    # parse args and place in dict
     datum_dict = {}
     for tag in datum:
         split_point = tag.find(':')
@@ -49,25 +48,28 @@ def add(datum):
             tag_value = tag[split_point+1:]
         datum_dict[tag_name] = tag_value
 
+    # add db columns if there are new tags
     for tag in datum_dict.keys():
         sql = 'show columns from datums like \'{}\''.format(tag)
         column_exists, column = db(sql)
         if not column_exists:
             print('new tag! adding db column...')
             db('alter table datums add {} varchar(32)'.format(tag))
-    sql = 'insert into datums {} values {}'
 
+    # build tag and value tuples for sql command
     tags = tuple(
         [ tag for tag in datum_dict.keys() ] +
         ['time']
     )
-    # remove quotes from tag tuple for sql command
-    tags = str(tags).replace('\'', '')
-
     values = tuple(
         [ val for val in datum_dict.values() ] +
         [ str(datetime.now()) ]
     )
+
+    # remove quotes from tag tuple for sql command
+    tags = str(tags).replace('\'', '')
+
+    sql = 'insert into datums {} values {}'
     db(sql.format(tags, values))
 
 @main.command()
