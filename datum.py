@@ -37,7 +37,7 @@ def add(datum):
 
     tag, value = datum
     sql = 'show columns from datums like \'{}\''.format(tag)
-    column_exists, those_columns = db(sql)
+    column_exists, column = db(sql)
     if not column_exists:
         print('new tag! adding db column...')
         db('alter table datums add {} varchar(32)'.format(tag))
@@ -47,8 +47,13 @@ def add(datum):
 @main.command()
 def ls():
     '''List all datums'''
-    datum_list = db('select * from datums')
-    click.echo(pprint(datum_list))
+    datum_count, datum_list = db('select * from datums')
+    for datum in datum_list:
+        click.echo(str(datum['id']) + ' ', nl=False)
+        click.echo(str(datum['time']) + ': ', nl=False)
+        for tag, value in datum.items():
+            if tag not in ['time', 'id'] and value:
+                click.echo(str(tag + ': ' + value))
 
 
 @main.command()
