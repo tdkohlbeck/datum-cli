@@ -34,18 +34,41 @@ def add(datum):
         click.echo('TODO: allow runtime tag entry')
         return
     # make sure each tag has a value
-    if len(datum) % 2:
+    '''if len(datum) % 2:
         click.echo('each tag requires a value!')
-        return
+        return'''
 
-    tag, value = datum
-    sql = 'show columns from datums like \'{}\''.format(tag)
-    column_exists, column = db(sql)
-    if not column_exists:
-        print('new tag! adding db column...')
-        db('alter table datums add {} varchar(32)'.format(tag))
-    sql = 'insert into datums ({}, time) values (\'{}\', \'{}\')'
-    db( sql.format(tag, value, datetime.now()) )
+    datum_dict = {}
+    for tag in datum:
+        split_point = tag.find(':')
+        if split_point == -1:
+            tag_name = tag
+            tag_value = True
+        else:
+            tag_name = tag[:split_point]
+            tag_value = tag[split_point+1:]
+        datum_dict[tag_name] = tag_value
+
+    for tag in datum_dict.keys():
+        sql = 'show columns from datums like \'{}\''.format(tag)
+        column_exists, column = db(sql)
+        if not column_exists:
+            print('new tag! adding db column...')
+            db('alter table datums add {} varchar(32)'.format(tag))
+    sql = 'insert into datums {} values {}'
+
+    tags = tuple(
+        [ tag for tag in datum_dict.keys() ] +
+        ['time']
+    )
+    # remove quotes from tag tuple for sql command
+    tags = str(tags).replace('\'', '')
+
+    values = tuple(
+        [ val for val in datum_dict.values() ] +
+        [ str(datetime.now()) ]
+    )
+    db(sql.format(tags, values))
 
 @main.command()
 def ls():
@@ -56,7 +79,8 @@ def ls():
         click.echo(str(datum['time']) + ': ', nl=False)
         for tag, value in datum.items():
             if tag not in ['time', 'id'] and value:
-                click.echo(str(tag + ': ' + value))
+                click.echo(str(tag + ': ' + value) + ', ', nl=False)
+        click.echo()
 
 
 @main.command()
@@ -69,5 +93,9 @@ def edit():
 def rm(datum_ids):
     '''Removes existing datum(s)'''
     for datum_id in datum_ids:
-        db('delete from datums where id={}'.format(datum_id))
-        click.echo('deleted datum ' + str(datum_id))
+        if datum_id == 'all':
+            db('delete from datums')
+            click.echo('all datums deleted!')
+        else:
+            db('delete from datums where id={}'.format(datum_id))
+            click.echo('deleted datum ' + str(datum_id))
