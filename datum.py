@@ -24,12 +24,15 @@ def db(sql):
 
 @click.group()
 def main():
-    pass
+    '''A personal data management platform--for humans!'''
 
 @main.command()
 @click.argument('datum', nargs=-1)
 def add(datum):
     '''Add a new datum'''
+    if not datum:
+        click.echo('TODO: allow runtime tag entry')
+        return
     # make sure each tag has a value
     if len(datum) % 2:
         click.echo('each tag requires a value!')
@@ -64,7 +67,7 @@ def edit():
 @main.command()
 @click.argument('datum_ids', nargs=-1)
 def rm(datum_ids):
-    '''Remove an existing datum'''
+    '''Removes existing datum(s)'''
     for datum_id in datum_ids:
         db('delete from datums where id={}'.format(datum_id))
         click.echo('deleted datum ' + str(datum_id))
