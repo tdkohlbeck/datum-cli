@@ -53,8 +53,33 @@ def add(datum):
         sql = 'show columns from datums like \'{}\''.format(tag)
         column_exists, column = db(sql)
         if not column_exists:
-            print('new tag! adding db column...')
+            click.echo('new tag! adding db column ' + tag)
+            # TODO change types based on tag values
             db('alter table datums add {} varchar(32)'.format(tag))
+
+    # update tag metadata
+    for tag, value in datum_dict.items():
+
+        # look for tag, add if not found
+        sql = 'select tag_name from tags where tag_name=\'{}\''
+        row_count, row = db(sql.format(tag))
+        if not row:
+            sql = 'insert into tags (tag_name, count) value (\'{}\', 0)'
+            db(sql.format(tag))
+
+
+        # pull out tag count
+        sql = 'select count from tags where tag_name=\'{}\''
+        _, tag_count = db(sql.format(tag))
+        # put in tag count + 1
+        sql = 'update tags set count={} where tag_name=\'{}\''
+        # TODO clean up this mess! vvv
+        db(sql.format(tag_count[0]['count'] + 1, tag))
+
+        # TODO value set
+        # pull out value_set
+        # append value to set
+        # put updated set in its place
 
     # build tag and value tuples for sql command
     tags = tuple(
@@ -76,12 +101,14 @@ def add(datum):
 def ls():
     '''List all datums'''
     datum_count, datum_list = db('select * from datums')
+    if not datum_list:
+        click.echo('no datums found!')
     for datum in datum_list:
-        click.echo(str(datum['id']) + ' ', nl=False)
-        click.echo(str(datum['time']) + ': ', nl=False)
+        click.echo(str(datum['id']) + '  ', nl=False)
+        click.echo(str(datum['time']) + '  ', nl=False)
         for tag, value in datum.items():
             if tag not in ['time', 'id'] and value:
-                click.echo(str(tag + ': ' + value) + ', ', nl=False)
+                click.echo(str(tag + ': ' + value + ', '), nl=False)
         click.echo()
 
 
@@ -94,6 +121,7 @@ def edit():
 @click.argument('datum_ids', nargs=-1)
 def rm(datum_ids):
     '''Removes existing datum(s)'''
+
     for datum_id in datum_ids:
         if datum_id == 'all':
             db('delete from datums')
@@ -101,3 +129,8 @@ def rm(datum_ids):
         else:
             db('delete from datums where id={}'.format(datum_id))
             click.echo('deleted datum ' + str(datum_id))
+
+    # TODO remove unused tag columns from db
+    # - get fields from each datum
+    # - check each field for present values
+    # - if field empty (all NULL) drop field

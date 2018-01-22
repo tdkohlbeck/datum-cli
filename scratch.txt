@@ -8,3 +8,6 @@ add tag to db table steps:
 - check if tag column/field exists
 - if exists, add row under that field
 - if not, then add the field, then the row
+
+TODO:
+- remove unused columns
