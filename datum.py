@@ -67,7 +67,6 @@ def add(datum):
             sql = 'insert into tags (tag_name, count) value (\'{}\', 0)'
             db(sql.format(tag))
 
-
         # pull out tag count
         sql = 'select count from tags where tag_name=\'{}\''
         _, tag_count = db(sql.format(tag))
@@ -122,6 +121,42 @@ def edit():
 def rm(datum_ids):
     '''Removes existing datum(s)'''
 
+    # tally up all the tags being deleted
+    tag_dict = {}
+    for datum_id in datum_ids:
+        sql = 'select * from datums where id={}'
+        _, datum = db(sql.format(datum_id))
+
+        if not datum:
+            click.echo('datum doesn\'t exist!')
+            return
+
+        datum = datum[0] # escape list
+        for tag, count in datum.items():
+            if not (tag == 'id' or tag == 'time') and datum[tag] != None:
+                if not tag in tag_dict:
+                    tag_dict[tag] = 1
+                else:
+                    tag_dict[tag] += 1
+        print(datum)
+
+    print(tag_dict)
+
+    # update tag counts in tag table
+    for tag, count in tag_dict.items():
+        sql = 'select * from tags where tag_name=\'{}\''
+        _, records = db(sql.format(tag))
+        old_count = records[0]['count']
+        print(old_count)
+        sql = 'update tags set count={} where tag_name=\'{}\''
+        db(sql.format(old_count - count, tag))
+
+        # remove tag column if 0
+        if old_count - count == 0:
+            sql='alter table datums drop column {}'
+            db(sql.format(tag))
+
+    # remove the datums
     for datum_id in datum_ids:
         if datum_id == 'all':
             db('delete from datums')
@@ -131,6 +166,11 @@ def rm(datum_ids):
             click.echo('deleted datum ' + str(datum_id))
 
     # TODO remove unused tag columns from db
-    # - get fields from each datum
     # - check each field for present values
     # - if field empty (all NULL) drop field
+
+@main.command()
+def reset():
+    db('drop table if exists datums, tags')
+    db('create table datums (id int(11) not null auto_increment primary key, time datetime)')
+    db('create table tags (id int(11) not null auto_increment primary key, tag_name varchar(32), count int(11))')
