@@ -138,9 +138,6 @@ def rm(datum_ids):
                     tag_dict[tag] = 1
                 else:
                     tag_dict[tag] += 1
-        print(datum)
-
-    print(tag_dict)
 
     # update tag counts in tag table
     for tag, count in tag_dict.items():
@@ -164,10 +161,6 @@ def rm(datum_ids):
         else:
             db('delete from datums where id={}'.format(datum_id))
             click.echo('deleted datum ' + str(datum_id))
-
-    # TODO remove unused tag columns from db
-    # - check each field for present values
-    # - if field empty (all NULL) drop field
 
 @main.command()
 def reset():
