@@ -2,10 +2,12 @@ import click
 import pymysql.cursors
 from datetime import datetime
 from pprint import pprint
+import os
 
 datums_db = {
     'host': 'localhost',
     'user': 'root',
+    'password': os.environ['MYSQL_PASSWORD'],
     'db': 'datum',
     'charset': 'utf8mb4',
     'cursorclass': pymysql.cursors.DictCursor
