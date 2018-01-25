@@ -84,11 +84,11 @@ def add(datum):
 
     # build tag and value tuples for sql command
     tags = tuple(
-        [ tag for tag in datum_dict.keys() ] +
+        [ str(tag) for tag in datum_dict.keys() ] +
         ['time']
     )
     values = tuple(
-        [ val for val in datum_dict.values() ] +
+        [ str(val) for val in datum_dict.values() ] +
         [ str(datetime.now()) ]
     )
 
