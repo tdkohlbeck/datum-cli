@@ -15,6 +15,7 @@ datums_db = {
 
 def db(sql):
     connection = pymysql.connect(**datums_db)
+    print('CONNECT')
     try:
         with connection.cursor() as cursor:
             affected_row_count = cursor.execute(sql)
@@ -22,11 +23,13 @@ def db(sql):
         all_rows = cursor.fetchall()
     finally:
         connection.close()
+        print('DISCONNECT')
     return (affected_row_count, all_rows)
 
 @click.group()
 def main():
     '''A personal data management platform--for humans!'''
+    print('main func called')
 
 @main.command()
 @click.argument('datum', nargs=-1)

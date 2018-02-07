@@ -11,3 +11,39 @@ add tag to db table steps:
 
 TODO:
 - remove unused columns
+
+TODO messenger chatbot:
+- select tag quick replies
+	- get tag counts from db
+		- datum-cli command
+	- show top 11 tags
+- select tag value quick replies
+	- get tag value counts from db
+		- make fields for tag value counts
+- open up to other users
+	- implement way to upload/download data (csv)
+	- inform of their privacy and security!
+
+1. say hello to initiate quick replies
+2. show top level commands (list, reset, add, etc.)
+3. for sub-commands, have intermediate state before calling datum-cli (build the arguments)
+4. show top tags, tag-values as quick replies
+5.
+
+array of qr-cmd pairs
+map array to replies
+have datum call accept commands
+if block for sub-commands
+catch 'add' 'remove'
+send other messages to present/receive subcommands
+
+
+* chatbot flow:
+> (any text)
+#add #remove #list #help
+> #add
+#tag1 #tag2 #tag3 ...
+> #tag1
+#value1 #value2 #value3
+> (text)
+added tag1: [text] on 01/28 at 1:33pm #add #remove #list #help
