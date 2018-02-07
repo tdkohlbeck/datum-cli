@@ -15,7 +15,6 @@ datums_db = {
 
 def db(sql):
     connection = pymysql.connect(**datums_db)
-    print('CONNECT')
     try:
         with connection.cursor() as cursor:
             affected_row_count = cursor.execute(sql)
@@ -23,13 +22,11 @@ def db(sql):
         all_rows = cursor.fetchall()
     finally:
         connection.close()
-        print('DISCONNECT')
     return (affected_row_count, all_rows)
 
 @click.group()
 def main():
-    '''A personal data management platform--for humans!'''
-    print('main func called')
+    '''A personal metrics management platform'''
 
 @main.command()
 @click.argument('datum', nargs=-1)
@@ -102,18 +99,25 @@ def add(datum):
     db(sql.format(tags, values))
 
 @main.command()
-def ls():
+@click.argument('args', nargs=-1)
+def ls(args):
     '''List all datums'''
-    datum_count, datum_list = db('select * from datums')
-    if not datum_list:
-        click.echo('no datums found!')
-    for datum in datum_list:
-        click.echo(str(datum['id']) + '  ', nl=False)
-        click.echo(str(datum['time']) + '  ', nl=False)
-        for tag, value in datum.items():
-            if tag not in ['time', 'id'] and value:
-                click.echo(str(tag + ': ' + value + ', '), nl=False)
-        click.echo()
+
+    if args and args[0] == 'tags':
+        tag_list_count, tag_list = db('select tag_name from tags')
+        for tag in tag_list:
+            click.echo(tag['tag_name'])
+    else:
+        datum_count, datum_list = db('select * from datums')
+        if not datum_list:
+            click.echo('no datums found!')
+        for datum in datum_list:
+            click.echo(str(datum['id']) + '  ', nl=False)
+            click.echo(str(datum['time']) + '  ', nl=False)
+            for tag, value in datum.items():
+                if tag not in ['time', 'id'] and value:
+                    click.echo(str(tag + ': ' + value + ', '), nl=False)
+            click.echo()
 
 
 @main.command()
