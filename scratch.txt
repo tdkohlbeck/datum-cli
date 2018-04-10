@@ -47,3 +47,28 @@ send other messages to present/receive subcommands
 #value1 #value2 #value3
 > (text)
 added tag1: [text] on 01/28 at 1:33pm #add #remove #list #help
+
+features
+
+list datums of specific tags
+datum ls tags water, exercise
+datum ls tags water:10
+
+datum a
+datum add
+
+datum r
+datum rm
+datum remove
+
+datum e
+datum ed
+datum edit
+
+datum l
+datum ls
+datum list
+
+datum
+datum -h
+datum --help
