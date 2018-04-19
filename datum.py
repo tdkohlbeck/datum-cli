@@ -1,13 +1,15 @@
 import click
+import sys
+sys.path.append('.')
 import pymysql.cursors
 from datetime import datetime
 from pprint import pprint
-import os
+from personal_config import mysql_password
 
 datums_db = {
     'host': 'localhost',
     'user': 'root',
-    'password': os.environ['MYSQL_PASSWORD'],
+    'password': mysql_password(),
     'db': 'datum',
     'charset': 'utf8mb4',
     'cursorclass': pymysql.cursors.DictCursor
@@ -107,6 +109,19 @@ def ls(args):
         tag_list_count, tag_list = db('select tag_name from tags')
         for tag in tag_list:
             click.echo(tag['tag_name'])
+    elif args:
+        sql = 'select * from datums where {} like "%"'
+        datum_count, datum_list = db(sql.format(args[0]))
+        if not datum_count:
+            click.echo('no datums found with tag {args[0]}!')
+        for datum in datum_list:
+            click.echo(str(datum['id']) + '  ', nl=False)
+            click.echo(str(datum['time']) + '  ', nl=False)
+            for tag, value in datum.items():
+                if tag not in ['time', 'id'] and value:
+                    click.echo(str(tag + ': ' + value + ', '), nl=False)
+            click.echo()
+
     else:
         datum_count, datum_list = db('select * from datums')
         if not datum_list:
