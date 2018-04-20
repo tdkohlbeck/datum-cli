@@ -1,4 +1,5 @@
 import click
+import json as jayson
 import sys
 sys.path.append('../datum-cli/')
 import pymysql.cursors
@@ -101,14 +102,25 @@ def add(datum):
     db(sql.format(tags, values))
 
 @main.command()
+@click.option(
+    '--json',
+    '-j',
+    is_flag=True,
+    help='output data in json format',
+)
 @click.argument('args', nargs=-1)
-def ls(args):
+def ls(json, args):
     '''List all datums'''
     # to see a list of tags
     if args and args[0] == 'tags':
         tag_list_count, tag_list = db('select tag_name from tags')
         for tag in tag_list:
-            click.echo(tag['tag_name'])
+            if json:
+                click.echo(jayson.dumps(tag_list))
+                #click.echo(tag_list)
+                return
+            else:
+                click.echo(tag['tag_name'])
     # to see a list of datums with a specific tag
     elif args:
         try:
