@@ -1,6 +1,6 @@
 import click
 import sys
-sys.path.append('.')
+sys.path.append('../datum-cli/')
 import pymysql.cursors
 from datetime import datetime
 from pprint import pprint
@@ -87,7 +87,7 @@ def add(datum):
     # build tag and value tuples for sql command
     tags = tuple(
         [ str(tag) for tag in datum_dict.keys() ] +
-        ['time']
+        ['_time']
     )
     values = tuple(
         [ str(val) for val in datum_dict.values() ] +
@@ -104,33 +104,38 @@ def add(datum):
 @click.argument('args', nargs=-1)
 def ls(args):
     '''List all datums'''
-
+    # to see a list of tags
     if args and args[0] == 'tags':
         tag_list_count, tag_list = db('select tag_name from tags')
         for tag in tag_list:
             click.echo(tag['tag_name'])
+    # to see a list of datums with a specific tag
     elif args:
-        sql = 'select * from datums where {} like "%"'
-        datum_count, datum_list = db(sql.format(args[0]))
-        if not datum_count:
-            click.echo('no datums found with tag {args[0]}!')
+        try:
+            sql = 'select * from datums where {} like "%"'
+            datum_count, datum_list = db(sql.format(args[0]))
+        except:
+            click.echo(
+                'no datums found with tag ' + str( args[0] )
+            )
+            return
         for datum in datum_list:
             click.echo(str(datum['id']) + '  ', nl=False)
-            click.echo(str(datum['time']) + '  ', nl=False)
+            click.echo(str(datum['_time']) + '  ', nl=False)
             for tag, value in datum.items():
-                if tag not in ['time', 'id'] and value:
+                if tag not in ['_time', 'id'] and value:
                     click.echo(str(tag + ': ' + value + ', '), nl=False)
             click.echo()
-
+    # to see all datums
     else:
         datum_count, datum_list = db('select * from datums')
         if not datum_list:
             click.echo('no datums found!')
         for datum in datum_list:
             click.echo(str(datum['id']) + '  ', nl=False)
-            click.echo(str(datum['time']) + '  ', nl=False)
+            click.echo(str(datum['_time']) + '  ', nl=False)
             for tag, value in datum.items():
-                if tag not in ['time', 'id'] and value:
+                if tag not in ['_time', 'id'] and value:
                     click.echo(str(tag + ': ' + value + ', '), nl=False)
             click.echo()
 
@@ -157,7 +162,7 @@ def rm(datum_ids):
 
         datum = datum[0] # escape list
         for tag, count in datum.items():
-            if not (tag == 'id' or tag == 'time') and datum[tag] != None:
+            if not (tag == 'id' or tag == '_time') and datum[tag] != None:
                 if not tag in tag_dict:
                     tag_dict[tag] = 1
                 else:
@@ -189,5 +194,5 @@ def rm(datum_ids):
 @main.command()
 def reset():
     db('drop table if exists datums, tags')
-    db('create table datums (id int(11) not null auto_increment primary key, time datetime)')
+    db('create table datums (id int(11) not null auto_increment primary key, _time datetime)')
     db('create table tags (id int(11) not null auto_increment primary key, tag_name varchar(32), count int(11))')
