@@ -1,11 +1,12 @@
 import click
 import json as jayson
-import sys
-sys.path.append('../datum-cli/')
 import pymysql.cursors
 from datetime import datetime
 from pprint import pprint
 from personal_config import mysql_password
+
+import sys
+sys.path.append('../datum-cli/')
 
 datums_db = {
     'host': 'localhost',
@@ -27,9 +28,24 @@ def db(sql):
         connection.close()
     return (affected_row_count, all_rows)
 
+class Config(object):
+    def __init__(self):
+        self.json = False
+
+pass_config = click.make_pass_decorator(Config, ensure=True) # auto make instance
+
 @click.group()
-def main():
+@click.option(
+    '--json',
+    '-j',
+    is_flag=True,
+    help='output data in json format',
+)
+@pass_config
+def main(config, json):
     '''A personal metrics management platform'''
+    if json:
+        config.json = True
 
 @main.command()
 @click.argument('datum', nargs=-1)
@@ -102,25 +118,18 @@ def add(datum):
     db(sql.format(tags, values))
 
 @main.command()
-@click.option(
-    '--json',
-    '-j',
-    is_flag=True,
-    help='output data in json format',
-)
 @click.argument('args', nargs=-1)
-def ls(json, args):
+@pass_config
+def ls(config, args):
     '''List all datums'''
     # to see a list of tags
     if args and args[0] == 'tags':
         tag_list_count, tag_list = db('select tag_name from tags')
+        if config.json:
+            click.echo(jayson.dumps(tag_list))
+            return
         for tag in tag_list:
-            if json:
-                click.echo(jayson.dumps(tag_list))
-                #click.echo(tag_list)
-                return
-            else:
-                click.echo(tag['tag_name'])
+            click.echo(tag['tag_name'])
     # to see a list of datums with a specific tag
     elif args:
         try:
@@ -130,6 +139,15 @@ def ls(json, args):
             click.echo(
                 'no datums found with tag ' + str( args[0] )
             )
+            return
+        if config.json:
+            serializable_list = []
+            for datum in datum_list:
+                print(datum)
+                datum['_time'] = datum['_time'].strftime('%Y-%m-%d %H:%M:%S')
+                print(datum)
+                serializable_list += datum
+            # click.echo(jayson.dumps(serializable_list))
             return
         for datum in datum_list:
             click.echo(str(datum['id']) + '  ', nl=False)
@@ -143,6 +161,16 @@ def ls(json, args):
         datum_count, datum_list = db('select * from datums')
         if not datum_list:
             click.echo('no datums found!')
+            return
+        if config.json:
+            serializable_list = []
+            for datum in datum_list:
+                print(datum)
+                datum['_time'] = datum['_time'].strftime('%Y-%m-%d %H:%M:%S')
+                print(datum)
+                serializable_list += datum
+            # click.echo(jayson.dumps(serializable_list))
+            return
         for datum in datum_list:
             click.echo(str(datum['id']) + '  ', nl=False)
             click.echo(str(datum['_time']) + '  ', nl=False)
@@ -205,6 +233,7 @@ def rm(datum_ids):
 
 @main.command()
 def reset():
+    '''clears all data'''
     db('drop table if exists datums, tags')
     db('create table datums (id int(11) not null auto_increment primary key, _time datetime)')
     db('create table tags (id int(11) not null auto_increment primary key, tag_name varchar(32), count int(11))')
