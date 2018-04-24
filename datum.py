@@ -31,6 +31,32 @@ def db(sql):
 class Config(object):
     def __init__(self):
         self.json = False
+        self.last = False
+
+    def lineout(self, sql_results):
+        for datum in sql_results:
+            datum['_time'] =  datum['_time'].strftime(
+            '%Y-%m-%d %H:%M:%S'
+            )
+        if self.json:
+            click.echo(jayson.dumps(sql_results))
+            return
+        output = ''
+        for datum in sql_results:
+            output += str(datum['id']) + ' '
+            output += str(datum['_time']) + ' '
+            for tag, value in datum.iteritems():
+                if tag == '_time' or tag == 'id':
+                    continue
+                if not value:
+                    continue
+                if value == u'True':
+                    output += str(tag) + ', '
+                else:
+                    output += str(tag) + ': ' + str(value) + ', '
+            output += '\n'
+        click.echo(output)
+
 
 pass_config = click.make_pass_decorator(Config, ensure=True) # auto make instance
 
@@ -41,11 +67,19 @@ pass_config = click.make_pass_decorator(Config, ensure=True) # auto make instanc
     is_flag=True,
     help='output data in json format',
 )
+@click.option(
+    '--last',
+    '-l',
+    default=1,
+    help='output last N datum entries only',
+)
 @pass_config
-def main(config, json):
+def main(config, json, last):
     '''A personal metrics management platform'''
     if json:
         config.json = True
+    if last:
+        config.last = last
 
 @main.command()
 @click.argument('datum', nargs=-1)
@@ -125,11 +159,8 @@ def ls(config, args):
     # to see a list of tags
     if args and args[0] == 'tags':
         tag_list_count, tag_list = db('select tag_name from tags')
-        if config.json:
-            click.echo(jayson.dumps(tag_list))
-            return
-        for tag in tag_list:
-            click.echo(tag['tag_name'])
+        config.lineout(tag_list)
+
     # to see a list of datums with a specific tag
     elif args:
         try:
@@ -140,44 +171,15 @@ def ls(config, args):
                 'no datums found with tag ' + str( args[0] )
             )
             return
-        if config.json:
-            serializable_list = []
-            for datum in datum_list:
-                print(datum)
-                datum['_time'] = datum['_time'].strftime('%Y-%m-%d %H:%M:%S')
-                print(datum)
-                serializable_list += datum
-            # click.echo(jayson.dumps(serializable_list))
-            return
-        for datum in datum_list:
-            click.echo(str(datum['id']) + '  ', nl=False)
-            click.echo(str(datum['_time']) + '  ', nl=False)
-            for tag, value in datum.items():
-                if tag not in ['_time', 'id'] and value:
-                    click.echo(str(tag + ': ' + value + ', '), nl=False)
-            click.echo()
+        config.lineout(datum_list)
+        
     # to see all datums
     else:
         datum_count, datum_list = db('select * from datums')
         if not datum_list:
             click.echo('no datums found!')
             return
-        if config.json:
-            serializable_list = []
-            for datum in datum_list:
-                print(datum)
-                datum['_time'] = datum['_time'].strftime('%Y-%m-%d %H:%M:%S')
-                print(datum)
-                serializable_list += datum
-            # click.echo(jayson.dumps(serializable_list))
-            return
-        for datum in datum_list:
-            click.echo(str(datum['id']) + '  ', nl=False)
-            click.echo(str(datum['_time']) + '  ', nl=False)
-            for tag, value in datum.items():
-                if tag not in ['_time', 'id'] and value:
-                    click.echo(str(tag + ': ' + value + ', '), nl=False)
-            click.echo()
+        config.lineout(datum_list)
 
 
 @main.command()
