@@ -54,7 +54,9 @@ class Config(object):
                     output += str(tag) + ', '
                 else:
                     output += str(tag) + ': ' + str(value) + ', '
+            output = output[:-2] # remove last comma
             output += '\n'
+        output = output[:-1] # remove last newline
         click.echo(output)
 
 
@@ -156,6 +158,7 @@ def add(datum):
 @pass_config
 def ls(config, args):
     '''List all datums'''
+
     # to see a list of tags
     if args and args[0] == 'tags':
         tag_list_count, tag_list = db('select tag_name from tags')
@@ -172,7 +175,7 @@ def ls(config, args):
             )
             return
         config.lineout(datum_list)
-        
+
     # to see all datums
     else:
         datum_count, datum_list = db('select * from datums')
@@ -215,7 +218,6 @@ def rm(datum_ids):
         sql = 'select * from tags where tag_name=\'{}\''
         _, records = db(sql.format(tag))
         old_count = records[0]['count']
-        print(old_count)
         sql = 'update tags set count={} where tag_name=\'{}\''
         db(sql.format(old_count - count, tag))
 
@@ -233,6 +235,33 @@ def rm(datum_ids):
             db('delete from datums where id={}'.format(datum_id))
             click.echo('deleted datum ' + str(datum_id))
 
+import dateparser
+@main.command()
+@click.argument('args', nargs=-1)
+@pass_config
+def time(config, args):
+    '''View start/stop activities'''
+
+    # get the time interval and activities
+    day = 0
+    activities = []
+    for arg in args:
+        if dateparser.parse(arg):
+            day = dateparser.parse(arg)
+        else:
+            activities.append(arg)
+    if not day:
+        click.echo('please specify a date')
+        return
+
+    day_number = day.day
+    day_start = day.date()
+    day_end = day.date()
+    day_end = day_end.replace(day=day_number + 1)
+    click.echo(str(day_start) + ' - ' + str(day_end))
+    sql = 'select * from datums where convert(_time,date)=\'{}\''
+    count, list = db(sql.format(day_start))
+    config.lineout(list)
 @main.command()
 def reset():
     '''clears all data'''

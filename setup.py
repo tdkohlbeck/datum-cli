@@ -18,6 +18,7 @@ setup(
     install_requires=[
         'Click',
         'pymysql',
+        'dateparser',
     ],
     entry_points='''
         [console_scripts]

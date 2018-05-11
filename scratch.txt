@@ -72,3 +72,63 @@ datum list
 datum
 datum -h
 datum --help
+
+
+> datum time today
+activity   duration   interval
+sleep      07:30      24:07 - 07:37
+breakfast  00:40      07:40 - 08:20
+surf       00:50      07:50 - 08:40 (overlapping activities!)
+code       01:20      09:00 - 10:20
+
+>datum time 'last week'
+
+> datum time exercise
+duration  date   interval
+01:10     07/07  12:34 - 00:31
+
+> datum time exercise yesterday
+duration  interval
+datum time exercise 'aug 10 to aug 12'
+duration date interval
+datum time push_ups pull_ups 'last week'
+
+1. grab all start/stop datums in time interval
+2. filter out tag-values if specified
+3. for each start tag:
+  1. look for a matching stop tag
+  2. if no stop found, look for next start
+  3. return array with tag-value, duration, interval
+datum time [activity value] [time interval]
+datum time [value1] [value2] [value3] [time interval]
+datum time [time interval]
+datum time [activity value]
+
+time_interval = 0
+activities = []
+for arg in args:
+    if is_time(arg):
+        time_interval = arg
+    else:
+        activities.append(arg)
+if not time_interval:
+    throw error
+    return
+
+time_app_rows = []
+for datum in datums_between_interval:
+    if datum contains start 
+    and activities.contains(datum.start)
+        activity = datum.start
+        start_time = datum.time or datum._time
+        stop_datum = find_matching_stop(datum) or find_next_start(datum)
+        stop_time = stop_datum.time or stop_datum._time
+        duration = stop_time - start_time
+        time_app_rows.append(
+            [activity, duration, start_time, stop_time]
+        )
+
+datum info exercise
+
+sum code time for each day and show average over a week
+
