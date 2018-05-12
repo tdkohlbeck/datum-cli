@@ -254,14 +254,60 @@ def time(config, args):
         click.echo('please specify a date')
         return
 
-    day_number = day.day
-    day_start = day.date()
-    day_end = day.date()
-    day_end = day_end.replace(day=day_number + 1)
-    click.echo(str(day_start) + ' - ' + str(day_end))
     sql = 'select * from datums where convert(_time,date)=\'{}\''
-    count, list = db(sql.format(day_start))
-    config.lineout(list)
+    count, datums_with_date = db(sql.format(day.date()))
+    if not count:
+        click.echo('no datums added on ' + str(day.date()))
+        return
+
+    def time_of(datum):
+        if 'time' in datum:
+            return datum['time']
+        return datum['_time']
+
+    def stop_time_for(activity, datums):
+        start_datum = {}
+        next_start_datum = {}
+        stop_datum = {}
+        #pprint(datums)
+        for datum in datums:
+            if not start_datum and 'start' in datum and datum['start'] == activity:
+                #click.echo('found start datum')
+                start_datum = datum
+            if start_datum and not next_start_datum and 'start' in datum and datum['start'] != activity:
+                #click.echo('found next start datum')
+                next_start_datum = datum
+            if 'stop' in datum and datum['stop'] == activity:
+                #click.echo('found stop datum')
+                stop_datum = datum
+        #pprint('start ' + str(start_datum['start']))
+        #pprint('stop  ' + str(start_datum['stop']))
+        #pprint(stop_datum)
+        if not start_datum:
+            return 'stop time for ' + activity + ' not found'
+        if not stop_datum:
+            if not next_start_datum:
+                return datetime.now()
+            return time_of(next_start_datum)
+        return time_of(stop_datum)
+
+    time_app_rows = []
+    for datum in datums_with_date:
+        if 'start' in datum and datum['start']:
+            activity = datum['start']
+            start_time = time_of(datum)
+            stop_time = stop_time_for(activity, datums_with_date)
+            duration = int((stop_time - start_time).total_seconds() / 60)
+            time_app_rows.append(
+                [str(activity), str(duration), start_time.strftime('%H:%M'), stop_time.strftime('%H:%M')]
+            )
+
+    for row in time_app_rows:
+        for col in row:
+            click.echo(col + '  ', nl=False)
+        click.echo()
+
+    #click.echo(stop_time_for('two', datums_with_date))
 @main.command()
 def reset():
     '''clears all data'''
