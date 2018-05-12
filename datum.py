@@ -307,7 +307,10 @@ def time(config, args):
         return hours + ':' + minutes
 
     length_of_longest_activity_name = 0
-    time_app_rows = []
+    time_app_rows = [ # TODO add total time and uncounted time
+        ['activity', 'duration', 'started', 'stopped'],
+        ['--------', '--------', '-------', '-------']
+    ]
     for datum in datums_with_date:
         if 'start' in datum and datum['start']:
             activity = datum['start']
@@ -330,13 +333,22 @@ def time(config, args):
             spaces += ' '
         return activity + spaces
 
+    max_column_lengths = [0, 0, 0, 0]
     for row in time_app_rows:
-        first_col = True
-        for col in row:
-            if first_col:
-                col = pad_with_spaces(col)
-            first_col = False
-            click.echo(col + '  ', nl=False)
+        for i in range(len(row)):
+            if len(row[i]) > max_column_lengths[i]:
+                max_column_lengths[i]  = len(row[i])
+
+    def padded(entry, column):
+        space_count = max_column_lengths[column] - len(entry)
+        for x in range(space_count):
+            entry += ' '
+        return entry
+
+    for row in time_app_rows:
+        for col in range(len(row)):
+            entry = padded(row[col], col)
+            click.echo(entry + '  ', nl=False)
         click.echo()
 
     #click.echo(stop_time_for('two', datums_with_date))
