@@ -265,6 +265,8 @@ def time(config, args):
             return datum['time']
         return datum['_time']
 
+    # TODO filter start/stop datums from datum list, then
+    #      iterate sequentially instead of per activity
     def stop_time_for(activity, datums):
         start_datum = {}
         next_start_datum = {}
@@ -287,23 +289,53 @@ def time(config, args):
             return 'stop time for ' + activity + ' not found'
         if not stop_datum:
             if not next_start_datum:
+                # TODO handle repeat activity entries with no next start
                 return datetime.now()
             return time_of(next_start_datum)
         return time_of(stop_datum)
 
+    def format_duration(seconds):
+        hours = seconds / 60 / 60
+        hours_remainder = hours - int(hours)
+        minutes = int(hours_remainder * 60)
+        hours = str(int(hours))
+        minutes = str(minutes)
+        if len(hours) == 1:
+            hours = '0' + hours
+        if len(minutes) == 1:
+            minutes = '0' + minutes
+        return hours + ':' + minutes
+
+    length_of_longest_activity_name = 0
     time_app_rows = []
     for datum in datums_with_date:
         if 'start' in datum and datum['start']:
             activity = datum['start']
+            if len(activity) > length_of_longest_activity_name:
+                length_of_longest_activity_name = len(activity)
             start_time = time_of(datum)
             stop_time = stop_time_for(activity, datums_with_date)
-            duration = int((stop_time - start_time).total_seconds() / 60)
-            time_app_rows.append(
-                [str(activity), str(duration), start_time.strftime('%H:%M'), stop_time.strftime('%H:%M')]
-            )
+            duration = (stop_time - start_time).total_seconds()
+            time_app_rows.append([
+                str(activity),
+                format_duration(duration),
+                start_time.strftime('%H:%M'),
+                stop_time.strftime('%H:%M'),
+            ])
+
+    def pad_with_spaces(activity):
+        space_count = length_of_longest_activity_name - len(activity)
+        spaces = ''
+        for x in range(space_count):
+            spaces += ' '
+        return activity + spaces
 
     for row in time_app_rows:
+        first_col = True
         for col in row:
+            if first_col:
+                col = pad_with_spaces(col)
+            first_col = False
             click.echo(col + '  ', nl=False)
         click.echo()
 
