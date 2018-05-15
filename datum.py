@@ -237,22 +237,20 @@ def rm(datum_ids):
 
 import dateparser
 @main.command()
-@click.argument('args', nargs=-1)
+@click.argument('date', nargs=1)
 @pass_config
-def time(config, args):
+def time(config, date):
     '''View start/stop activities'''
 
-    for arg in args:
-        if dateparser.parse(arg):
-            day = dateparser.parse(arg)
-    if not day:
-        click.echo('please specify a date')
+    date = dateparser.parse(date).date()
+    if not date:
+        click.echo('please specify a valid date')
         return
 
     sql = 'select * from datums where convert(_time,date)=\'{}\''
-    count, datums_with_date = db(sql.format(day.date()))
+    count, datums_with_date = db(sql.format(date))
     if not count:
-        click.echo('no datums added on ' + str(day.date()))
+        click.echo('no datums added on ' + str(date))
         return
 
     def filter_activities(datums):
@@ -271,68 +269,28 @@ def time(config, args):
             return datum['time']
         return datum['_time']
 
-    # TODO filter start/stop datums from datum list, then
-    #      iterate sequentially instead of per activity
-    '''def stop_time_for(activity, datums):
-        start_datum = {}
-        next_start_datum = {}
-        stop_datum = {}
-        #pprint(datums)
-        for datum in datums:
-            if not start_datum and 'start' in datum and datum['start'] == activity:
-                #click.echo('found start datum')
-                start_datum = datum
-            if start_datum and not next_start_datum and 'start' in datum and datum['start'] != activity:
-                #click.echo('found next start datum')
-                next_start_datum = datum
-            if 'stop' in datum and datum['stop'] == activity:
-                #click.echo('found stop datum')
-                stop_datum = datum
-        #pprint('start ' + str(start_datum['start']))
-        #pprint('stop  ' + str(start_datum['stop']))
-        #pprint(stop_datum)
-        if not start_datum:
-            return 'stop time for ' + activity + ' not found'
-        if not stop_datum:
-            if not next_start_datum:
-                # TODO handle repeat activity entries with no next start
-                return datetime.now()
-            return time_of(next_start_datum)
-        return time_of(stop_datum)'''
-
     def find_stop_time_for(activity, starting_index):
-        #print(activity, starting_index)
-        # check if activity is currently active
-        #if starting_index + 1 == len(datums):
-            #print('current!')
-        #    return datetime.now()
-        last_start = True
-        for i in range( starting_index + 1, len(datums) ):
-            if datums[i]['start']:
-                print('another start found')
-                last_start = False
-        if last_start:
-            print('last start!')
+        remaining_datums = range(starting_index + 1, len(datums))
+
+        no_more_activities_started = True # let's assume
+        for i in remaining_datums:
+            datum = datums[i]
+            if datum['start']:
+                no_more_activities_started = False
+                if datum['start'] == activity:
+                    # activity started again? let's stop there
+                    remaining_datums = range(starting_index + 1, i)
+                    break
+
+        if no_more_activities_started:
             return datetime.now()
-        # check if multiple entries for activity
-        # stop search if found
-        stop_search_index = len(datums)
-        for i in range( starting_index + 1, len(datums) ):
+
+        for i in remaining_datums:
             datum = datums[i]
-            if datum['start'] and datum['start'] == activity:
-                stop_search_index = i
-        print(stop_search_index)
-        next_datum_time = 0
-        for i in range(starting_index + 1, stop_search_index):
-            datum = datums[i]
-            if 'stop' in datum and datum['stop'] == activity:
-                #print('stop!')
+            if datum['stop'] and datum['stop'] == activity:
                 return time_of(datum)
-            if datum['start'] and not next_datum_time:
-                next_datum_time = time_of(datums[i])
-        #print('next start!')
-        #print(next_datum_time)
-        return next_datum_time
+            if datum['start']:
+                return time_of(datum)
 
     def format_duration(seconds):
         hours = seconds / 60 / 60
@@ -346,7 +304,7 @@ def time(config, args):
             minutes = '0' + minutes
         return hours + ':' + minutes
 
-    time_app_rows = [ # TODO add total time and uncounted time
+    rows = [ # TODO add total time and uncounted time
         ['activity', 'duration', 'started', 'stopped'],
         ['--------', '--------', '-------', '-------']
     ]
@@ -354,37 +312,20 @@ def time(config, args):
         datum = datums[i]
         if datum['start']:
             activity = datum['start']
-            print(activity, i)
             start_time = time_of(datum)
-            #print(start_time)
             stop_time = find_stop_time_for(activity, i)
-            #print(stop_time)
-            duration = stop_time - start_time
-            #print(duration)
-            duration = int(duration.total_seconds())
-            time_app_rows.append([
+            duration = format_duration(
+                (stop_time - start_time).total_seconds()
+            )
+            rows.append([
                 activity,
-                str(duration),
+                duration,
                 start_time.strftime('%H:%M'),
                 stop_time.strftime('%H:%M'),
             ])
 
-
-    '''for datum in datums:
-        if 'start' in datum and datum['start']:
-            activity = datum['start']
-            start_time = time_of(datum)
-            stop_time = stop_time_for(activity, datums_with_date)
-            duration = (stop_time - start_time).total_seconds()
-            time_app_rows.append([
-                str(activity),
-                format_duration(duration),
-                start_time.strftime('%H:%M'),
-                stop_time.strftime('%H:%M'),
-            ])'''
-
     max_column_lengths = [0, 0, 0, 0]
-    for row in time_app_rows:
+    for row in rows:
         for i in range(len(row)):
             if len(row[i]) > max_column_lengths[i]:
                 max_column_lengths[i]  = len(row[i])
@@ -396,13 +337,12 @@ def time(config, args):
             spaces += ' '
         return spaces + entry
 
-    for row in time_app_rows:
+    for row in rows:
         for col in range(len(row)):
             entry = padded(row[col], col)
             click.echo(entry + '  ', nl=False)
         click.echo()
 
-    #click.echo(stop_time_for('two', datums_with_date))
 @main.command()
 def reset():
     '''clears all data'''
