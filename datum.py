@@ -3,6 +3,7 @@ import json as jayson
 import pymysql.cursors
 from datetime import datetime
 from pprint import pprint
+import dateparser
 from personal_config import mysql_password
 
 import sys
@@ -138,6 +139,8 @@ def add(datum):
         # put updated set in its place
 
     # build tag and value tuples for sql command
+    if 'time' in datum_dict:
+        datum_dict['time'] = dateparser.parse(datum_dict['time'])
     tags = tuple(
         [ str(tag) for tag in datum_dict.keys() ] +
         ['_time']
@@ -235,7 +238,6 @@ def rm(datum_ids):
             db('delete from datums where id={}'.format(datum_id))
             click.echo('deleted datum ' + str(datum_id))
 
-import dateparser
 @main.command()
 @click.argument('date', nargs=1)
 @pass_config
