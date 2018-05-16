@@ -268,14 +268,11 @@ def time(config, date):
 
     def time_of(datum):
         if 'time' in datum and datum['time']:
-            return datum['time']
+            return dateparser.parse(datum['time'])
         return datum['_time']
 
     def find_stop_time_for(activity, starting_index):
         remaining_datums = range(starting_index + 1, len(datums))
-
-        # check if this is the last activity started
-        # check for stop datum
 
         next_start_time = 0
         for i in remaining_datums:
