@@ -307,7 +307,9 @@ def time(config, date):
             activity = datum['start']
             start_time = time_of(datum)
             stop_time = find_stop_time_for(activity, i)
-            duration = int((stop_time - start_time).total_seconds())
+            duration = format_duration(
+                (stop_time - start_time).total_seconds()
+            )
             rows.append([
                 activity,
                 str(duration),
