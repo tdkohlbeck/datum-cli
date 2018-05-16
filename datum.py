@@ -242,15 +242,15 @@ import dateparser
 def time(config, date):
     '''View start/stop activities'''
 
-    date = dateparser.parse(date).date()
+    date = dateparser.parse(date)
     if not date:
         click.echo('please specify a valid date')
         return
 
     sql = 'select * from datums where convert(_time,date)=\'{}\''
-    count, datums_with_date = db(sql.format(date))
+    count, datums_with_date = db(sql.format(date.date()))
     if not count:
-        click.echo('no datums added on ' + str(date))
+        click.echo('no datums added on ' + str(date.date()))
         return
 
     def filter_activities(datums):
@@ -272,25 +272,19 @@ def time(config, date):
     def find_stop_time_for(activity, starting_index):
         remaining_datums = range(starting_index + 1, len(datums))
 
-        no_more_activities_started = True # let's assume
+        # check if this is the last activity started
+        # check for stop datum
+
+        next_start_time = 0
         for i in remaining_datums:
             datum = datums[i]
-            if datum['start']:
-                no_more_activities_started = False
-                if datum['start'] == activity:
-                    # activity started again? let's stop there
-                    remaining_datums = range(starting_index + 1, i)
-                    break
-
-        if no_more_activities_started:
-            return datetime.now()
-
-        for i in remaining_datums:
-            datum = datums[i]
-            if datum['stop'] and datum['stop'] == activity:
+            if 'stop' in datum and datum['stop'] == activity:
                 return time_of(datum)
-            if datum['start']:
-                return time_of(datum)
+            if datum['start'] and not next_start_time:
+                next_start_time = time_of(datum)
+
+        stop_time = next_start_time if next_start_time else datetime.now()
+        return stop_time
 
     def format_duration(seconds):
         hours = seconds / 60 / 60
@@ -314,12 +308,10 @@ def time(config, date):
             activity = datum['start']
             start_time = time_of(datum)
             stop_time = find_stop_time_for(activity, i)
-            duration = format_duration(
-                (stop_time - start_time).total_seconds()
-            )
+            duration = int((stop_time - start_time).total_seconds())
             rows.append([
                 activity,
-                duration,
+                str(duration),
                 start_time.strftime('%H:%M'),
                 stop_time.strftime('%H:%M'),
             ])
