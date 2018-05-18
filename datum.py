@@ -36,8 +36,10 @@ class Config(object):
 
     def lineout(self, sql_results):
         for datum in sql_results:
+            if type(datum['_time']) is str:
+                continue
             datum['_time'] =  datum['_time'].strftime(
-            '%Y-%m-%d %H:%M:%S'
+                '%Y-%m-%d %H:%M:%S'
             )
         if self.json:
             click.echo(jayson.dumps(sql_results))
@@ -171,7 +173,13 @@ def ls(config, args):
     # to see a list of tags
     if args and args[0] == 'tags':
         tag_list_count, tag_list = db('select tag_name from tags')
-        config.lineout(tag_list)
+
+        if not tag_list_count:
+            click.echo('no tags found!')
+            return
+
+        for tag in tag_list:
+            click.echo(tag['tag_name'])
 
     elif args and args[0].isdigit():
         try:
@@ -204,9 +212,55 @@ def ls(config, args):
 
 
 @main.command()
-def edit():
+@pass_config
+@click.argument('datum_id', nargs=1)
+def edit(config, datum_id):
     '''Edit an existing datum'''
-    pass
+
+    datum_to_edit = {}
+    try:
+        _, datum = db(
+            'select * from datums where id={}'.format(datum_id)
+        )
+        if datum:
+            datum_to_edit = datum[0]
+        else:
+            click.echo('datum with id ' + datum_id + ' not found')
+            return
+    except:
+        click.echo('please enter valid datum id(s)')
+        return
+
+    new_tag_value_pairs = {}
+    config.lineout([datum_to_edit])
+    for tag, value in datum_to_edit.items():
+        if tag == '_time' or tag == 'id' or value == None:
+            continue
+        new_value = click.prompt(str(tag), default=value)
+        new_tag_value_pairs[tag] = new_value
+
+    first_tag_value_pair = True
+    new_datum = datum_to_edit.copy()
+    sql = 'update datums'
+    for tag, value in new_tag_value_pairs.items():
+        new_datum[tag] = value
+        if type(value) is unicode:
+            # TODO join with delim
+            value = '\'{}\''.format(value)
+        if first_tag_value_pair:
+            sql += ' set {}={}'.format(tag, value)
+            first_tag_value_pair = False
+        else:
+            sql += ', {}={}'.format(tag, value)
+    sql += ' where id=' + str(datum_to_edit['id'])
+    if new_datum == datum_to_edit:
+        click.echo('no changes made')
+        return
+
+    db(sql)
+    config.lineout([datum_to_edit])
+    click.echo('changed to')
+    config.lineout([new_datum])
 
 @main.command()
 @click.argument('datum_ids', nargs=-1)
@@ -327,7 +381,7 @@ def time(config, date):
             )
             rows.append([
                 activity,
-                str(duration),
+                duration,
                 start_time.strftime('%H:%M'),
                 stop_time.strftime('%H:%M'),
             ])
