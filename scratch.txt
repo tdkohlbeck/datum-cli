@@ -117,7 +117,7 @@ if not time_interval:
 
 time_app_rows = []
 for datum in datums_between_interval:
-    if datum contains start 
+    if datum contains start
     and activities.contains(datum.start)
         activity = datum.start
         start_time = datum.time or datum._time
@@ -132,3 +132,17 @@ datum info exercise
 
 sum code time for each day and show average over a week
 
+> datum edit 101
+101: a_tag: value, another: 'a value'
+Enter blank to skip (default)
+a_tag [remove/edit/Skip]:
+another [remove/edit/Skip]: e
+another: 'something else'
+101: a_tag: value, another: 'something else'
+> datum edit
+
+> datum add pill1 pill2 pill3 ... alias:pills
+> datum add pills
+> datum ls
+1  pill1, pill2, pill3 ...
+2  pill1, pill2, pill3 ...

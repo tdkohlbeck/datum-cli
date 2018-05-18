@@ -96,6 +96,7 @@ def add(datum):
         click.echo('TODO: allow runtime tag entry')
         return
 
+
     # parse args and place in dict
     datum_dict = {}
     for tag in datum:
@@ -108,6 +109,31 @@ def add(datum):
             tag_value = tag[split_point+1:]
         datum_dict[tag_name] = tag_value
 
+    # check for aliases, fetch aliased datum
+
+        sql = 'select alias, id from datums where alias like "%"'
+        _, alias_id_pairs = db(sql)
+        aliases = []
+        ids = []
+        for pair in alias_id_pairs:
+            aliases.append(pair['alias'])
+            ids.append(pair['id'])
+        for tag in datum_dict.keys():
+            if tag in aliases:
+                match_index = aliases.index(tag)
+                sql = 'select * from datums where id={}'
+                _, aliased_datum = db(sql.format(ids[match_index]))
+                datum_dict = aliased_datum[0]
+                del datum_dict['id']
+                del datum_dict['_time']
+                del datum_dict['alias']
+                for tag, value in datum_dict.items():
+                    if value == None:
+                        del datum_dict[tag]
+
+
+
+
     # add db columns if there are new tags
     for tag in datum_dict.keys():
         sql = 'show columns from datums like \'{}\''.format(tag)
@@ -119,7 +145,6 @@ def add(datum):
 
     # update tag metadata
     for tag, value in datum_dict.items():
-
         # look for tag, add if not found
         sql = 'select tag_name from tags where tag_name=\'{}\''
         row_count, row = db(sql.format(tag))
