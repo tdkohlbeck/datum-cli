@@ -162,10 +162,25 @@ def add(datum):
 def ls(config, args):
     '''List all datums'''
 
+    def sql_for_selecting_ids():
+        sql = 'select * from datums where id={}'.format(args[0])
+        for arg in args[1:]:
+            sql += ' or id={}'.format(arg)
+        return sql
+
     # to see a list of tags
     if args and args[0] == 'tags':
         tag_list_count, tag_list = db('select tag_name from tags')
         config.lineout(tag_list)
+
+    elif args and args[0].isdigit():
+        try:
+            _, datum = db(sql_for_selecting_ids())
+            config.lineout(datum)
+        except:
+            print(sql_for_select_ids())
+            click.echo('no datum found with id ' + args[0])
+
 
     # to see a list of datums with a specific tag
     elif args:
