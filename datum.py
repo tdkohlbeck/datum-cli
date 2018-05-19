@@ -18,6 +18,7 @@ datums_db = {
     'cursorclass': pymysql.cursors.DictCursor
 }
 
+
 def db(sql):
     connection = pymysql.connect(**datums_db)
     try:
@@ -28,6 +29,7 @@ def db(sql):
     finally:
         connection.close()
     return (affected_row_count, all_rows)
+
 
 class Config(object):
     def __init__(self):
@@ -62,10 +64,23 @@ class Config(object):
         output = output[:-1] # remove last newline
         click.echo(output)
 
-
 pass_config = click.make_pass_decorator(Config, ensure=True) # auto make instance
 
-@click.group()
+class AliasedGroup(click.Group):
+
+    def get_command(self, ctx, cmd_name):
+        an_existing_command = click.Group.get_command(self, ctx, cmd_name)
+        if an_existing_command:
+            return an_existing_command
+        matches = [x for x in self.list_commands(ctx)
+                   if x.startswith(cmd_name)]
+        if not matches:
+            return None
+        elif len(matches) == 1:
+            return click.Group.get_command(self, ctx, matches[0])
+        ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
+
+@click.group(cls=AliasedGroup)
 @click.option(
     '--json',
     '-j',
@@ -85,6 +100,7 @@ def main(config, json, last):
         config.json = True
     if last:
         config.last = last
+
 
 @main.command()
 @click.argument('datum', nargs=-1)
@@ -110,7 +126,7 @@ def add(datum):
         datum_dict[tag_name] = tag_value
 
     # check for aliases, fetch aliased datum
-
+    try:
         sql = 'select alias, id from datums where alias like "%"'
         _, alias_id_pairs = db(sql)
         aliases = []
@@ -130,9 +146,8 @@ def add(datum):
                 for tag, value in datum_dict.items():
                     if value == None:
                         del datum_dict[tag]
-
-
-
+    except:
+        pass
 
     # add db columns if there are new tags
     for tag in datum_dict.keys():
@@ -186,7 +201,7 @@ def add(datum):
 @main.command()
 @click.argument('args', nargs=-1)
 @pass_config
-def ls(config, args):
+def list(config, args):
     '''List all datums'''
 
     def sql_for_selecting_ids():
@@ -226,6 +241,8 @@ def ls(config, args):
             )
             return
         config.lineout(datum_list)
+
+    # TODO see a list of datums by tag-value pair(s)
 
     # to see all datums
     else:
@@ -277,19 +294,21 @@ def edit(config, datum_id):
             first_tag_value_pair = False
         else:
             sql += ', {}={}'.format(tag, value)
+    # TODO strip quotes from input for sql command
     sql += ' where id=' + str(datum_to_edit['id'])
     if new_datum == datum_to_edit:
         click.echo('no changes made')
         return
 
     db(sql)
+    print sql
     config.lineout([datum_to_edit])
     click.echo('changed to')
     config.lineout([new_datum])
 
 @main.command()
 @click.argument('datum_ids', nargs=-1)
-def rm(datum_ids):
+def remove(datum_ids):
     '''Removes existing datum(s)'''
 
     # tally up all the tags being deleted
